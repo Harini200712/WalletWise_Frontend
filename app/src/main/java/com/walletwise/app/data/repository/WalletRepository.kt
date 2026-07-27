@@ -7,35 +7,38 @@ import kotlinx.coroutines.flow.*
 
 class WalletRepository {
 
-    private val _expenses = MutableStateFlow(MockData.sampleExpenses)
-    val expenses: Flow<List<Expense>> = _expenses.asStateFlow()
+    companion object {
+        private val _sharedExpenses = MutableStateFlow(MockData.sampleExpenses)
+        private val _sharedBudgets = MutableStateFlow(MockData.sampleBudgets)
+        private val _sharedUser = MutableStateFlow(UserProfile())
+        private val _sharedNotifications = MutableStateFlow(MockData.sampleNotifications)
 
-    private val _budgets = MutableStateFlow(MockData.sampleBudgets)
-    val budgets: Flow<List<Budget>> = _budgets.asStateFlow()
+        private var lastDeletedExpense: Expense? = null
+    }
 
-    private val _user = MutableStateFlow(MockData.sampleUser)
-    val user: Flow<UserProfile> = _user.asStateFlow()
-
-    private val _notifications = MutableStateFlow(MockData.sampleNotifications)
-    val notifications: Flow<List<NotificationItem>> = _notifications.asStateFlow()
+    val expenses: Flow<List<Expense>> = _sharedExpenses.asStateFlow()
+    val budgets: Flow<List<Budget>> = _sharedBudgets.asStateFlow()
+    val user: Flow<UserProfile> = _sharedUser.asStateFlow()
+    val notifications: Flow<List<NotificationItem>> = _sharedNotifications.asStateFlow()
 
     // Dynamically computed score flow
-    val score: Flow<WalletScore> = combine(_expenses, _budgets) { expList, bgtList ->
+    val score: Flow<WalletScore> = combine(_sharedExpenses, _sharedBudgets) { expList, bgtList ->
         WalletScoreEngine.calculateScore(expList, bgtList)
     }
 
     // Dynamically computed prediction flow
-    val prediction: Flow<Prediction> = _expenses.map { expList ->
+    val prediction: Flow<Prediction> = _sharedExpenses.map { expList ->
         WalletScoreEngine.generatePrediction(expList)
     }
 
-    val insights: Flow<List<Insight>> = _expenses.map { expList ->
+    val insights: Flow<List<Insight>> = _sharedExpenses.map { expList ->
         val foodTotal = expList.filter { it.category == ExpenseCategory.FOOD }.sumOf { it.amount }
+        val sym = _sharedUser.value.currencySymbol
         listOf(
             Insight(
                 id = "ins_1",
                 title = "Weekend Spend Surge Detected",
-                description = "Food & dining spending has reached ₹${foodTotal.toInt()}. Cooking at home twice a week can save ₹3,200 monthly.",
+                description = "Food & dining spending has reached $sym${foodTotal.toInt()}. Cooking at home twice a week can save $sym3,200 monthly.",
                 tag = "AI Suggestion",
                 actionText = "Set Dining Cap"
             ),
@@ -50,23 +53,59 @@ class WalletRepository {
     }
 
     fun addExpense(expense: Expense) {
-        _expenses.update { current -> listOf(expense) + current }
+        _sharedExpenses.update { current -> listOf(expense) + current }
         updateBudgetsForExpense(expense.category, expense.amount)
         checkBudgetThresholdAlerts(expense.category)
+
+        // Push notification
+        addNotification(
+            title = "Expense Added",
+            message = "Logged '${expense.title}' (${_sharedUser.value.currencySymbol}${expense.amount.toInt()}) in ${expense.category.displayName}.",
+            type = "SYSTEM"
+        )
     }
 
     fun updateExpense(updatedExpense: Expense) {
-        _expenses.update { current ->
+        _sharedExpenses.update { current ->
             current.map { if (it.id == updatedExpense.id) updatedExpense else it }
         }
+        addNotification(
+            title = "Expense Updated",
+            message = "Updated details for '${updatedExpense.title}'.",
+            type = "SYSTEM"
+        )
     }
 
     fun deleteExpense(id: String) {
-        _expenses.update { current -> current.filterNot { it.id == id } }
+        val target = _sharedExpenses.value.firstOrNull { it.id == id }
+        if (target != null) {
+            lastDeletedExpense = target
+            _sharedExpenses.update { current -> current.filterNot { it.id == id } }
+            addNotification(
+                title = "Expense Removed",
+                message = "Deleted transaction '${target.title}'.",
+                type = "ALERT"
+            )
+        }
+    }
+
+    fun undoLastDelete(): Boolean {
+        val deleted = lastDeletedExpense
+        if (deleted != null) {
+            _sharedExpenses.update { current -> listOf(deleted) + current }
+            lastDeletedExpense = null
+            addNotification(
+                title = "Expense Restored",
+                message = "Restored transaction '${deleted.title}'.",
+                type = "SYSTEM"
+            )
+            return true
+        }
+        return false
     }
 
     fun duplicateExpense(id: String) {
-        val original = _expenses.value.firstOrNull { it.id == id }
+        val original = _sharedExpenses.value.firstOrNull { it.id == id }
         if (original != null) {
             val duplicated = original.copy(
                 id = "exp_${System.currentTimeMillis()}",
@@ -80,31 +119,101 @@ class WalletRepository {
     }
 
     fun addBudget(budget: Budget) {
-        _budgets.update { current -> listOf(budget) + current }
+        _sharedBudgets.update { current -> listOf(budget) + current }
+        addNotification(
+            title = "Budget Created",
+            message = "Set ${_sharedUser.value.currencySymbol}${budget.allocatedAmount.toInt()} limit for ${budget.category.displayName}.",
+            type = "BUDGET"
+        )
     }
 
     fun updateBudget(updatedBudget: Budget) {
-        _budgets.update { current ->
+        _sharedBudgets.update { current ->
             current.map { if (it.id == updatedBudget.id) updatedBudget else it }
         }
+        addNotification(
+            title = "Budget Updated",
+            message = "Adjusted ${updatedBudget.category.displayName} budget cap to ${_sharedUser.value.currencySymbol}${updatedBudget.allocatedAmount.toInt()}.",
+            type = "BUDGET"
+        )
     }
 
     fun deleteBudget(id: String) {
-        _budgets.update { current -> current.filterNot { it.id == id } }
+        val target = _sharedBudgets.value.firstOrNull { it.id == id }
+        _sharedBudgets.update { current -> current.filterNot { it.id == id } }
+        if (target != null) {
+            addNotification(
+                title = "Budget Removed",
+                message = "Deleted budget allocation for ${target.category.displayName}.",
+                type = "ALERT"
+            )
+        }
     }
 
     fun updateUserProfile(updatedUser: UserProfile) {
-        _user.value = updatedUser
+        _sharedUser.value = updatedUser
+        addNotification(
+            title = "Profile Updated",
+            message = "Your profile information & settings were updated successfully.",
+            type = "SYSTEM"
+        )
+    }
+
+    fun updateThemeMode(mode: String) {
+        _sharedUser.update { it.copy(themeMode = mode) }
+    }
+
+    fun updateLanguage(lang: String) {
+        _sharedUser.update { it.copy(language = lang) }
+    }
+
+    fun updateCurrency(symbol: String) {
+        _sharedUser.update { it.copy(currencySymbol = symbol) }
+    }
+
+    fun toggleBiometric(enabled: Boolean) {
+        _sharedUser.update { it.copy(biometricEnabled = enabled) }
+    }
+
+    fun toggleNotifications(enabled: Boolean) {
+        _sharedUser.update { it.copy(notificationsEnabled = enabled) }
     }
 
     fun markNotificationRead(id: String) {
-        _notifications.update { current ->
+        _sharedNotifications.update { current ->
             current.map { if (it.id == id) it.copy(isRead = true) else it }
         }
     }
 
+    fun toggleNotificationRead(id: String) {
+        _sharedNotifications.update { current ->
+            current.map { if (it.id == id) it.copy(isRead = !it.isRead) else it }
+        }
+    }
+
+    fun deleteNotification(id: String) {
+        _sharedNotifications.update { current -> current.filterNot { it.id == id } }
+    }
+
+    fun clearAllNotifications() {
+        _sharedNotifications.value = emptyList()
+    }
+
+    private fun addNotification(title: String, message: String, type: String) {
+        val item = NotificationItem(
+            id = "n_${System.currentTimeMillis()}",
+            title = title,
+            message = message,
+            timestamp = "Just now",
+            groupTag = "Today",
+            isRead = false,
+            type = type
+        )
+        _sharedNotifications.update { current -> listOf(item) + current }
+    }
+
     private fun updateBudgetsForExpense(category: ExpenseCategory, amount: Double) {
-        _budgets.update { current ->
+        _sharedBudgets.update { current ->
             current.map { bgt ->
                 if (bgt.category == category) {
                     bgt.copy(spentAmount = bgt.spentAmount + amount)
@@ -114,19 +223,19 @@ class WalletRepository {
     }
 
     private fun checkBudgetThresholdAlerts(category: ExpenseCategory) {
-        val targetBudget = _budgets.value.firstOrNull { it.category == category } ?: return
+        val targetBudget = _sharedBudgets.value.firstOrNull { it.category == category } ?: return
         val ratio = targetBudget.spentAmount / targetBudget.allocatedAmount
         if (ratio >= 0.85) {
             val newAlert = NotificationItem(
                 id = "n_${System.currentTimeMillis()}",
                 title = "${category.displayName} Budget Alert",
-                message = "${category.displayName} is at ${(ratio * 100).toInt()}% capacity (₹${targetBudget.spentAmount.toInt()}/₹${targetBudget.allocatedAmount.toInt()}).",
+                message = "${category.displayName} is at ${(ratio * 100).toInt()}% capacity (${_sharedUser.value.currencySymbol}${targetBudget.spentAmount.toInt()}/${_sharedUser.value.currencySymbol}${targetBudget.allocatedAmount.toInt()}).",
                 timestamp = "Just now",
                 groupTag = "Today",
                 isRead = false,
                 type = "ALERT"
             )
-            _notifications.update { current -> listOf(newAlert) + current }
+            _sharedNotifications.update { current -> listOf(newAlert) + current }
         }
     }
 }

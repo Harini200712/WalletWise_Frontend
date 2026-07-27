@@ -23,24 +23,27 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.walletwise.app.core.designsystem.*
 import com.walletwise.app.core.designsystem.components.*
 import com.walletwise.app.core.model.Expense
 
 @Composable
 fun DashboardScreen(
-    viewModel: DashboardViewModel = DashboardViewModel(),
+    viewModel: DashboardViewModel = viewModel(),
     onNavigateExpenses: () -> Unit,
     onNavigateBudget: () -> Unit,
     onNavigatePrediction: () -> Unit,
-    onNavigateNotifications: () -> Unit
+    onNavigateNotifications: () -> Unit,
+    onNavigateExpenseDetail: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val sym = uiState.currencySymbol
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(WalletBackground),
+            .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(bottom = 90.dp)
     ) {
         // Greeting Header
@@ -51,14 +54,15 @@ fun DashboardScreen(
             )
         }
 
-        // Wallet Score Card
+        // Wallet Score Card (Clickable -> Opens Prediction)
         item {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             WalletScoreCard(
                 score = uiState.score?.score ?: 785,
                 maxScore = uiState.score?.maxScore ?: 900,
                 rating = uiState.score?.ratingLabel ?: "Excellent",
-                summary = uiState.score?.summaryMessage ?: "Top financial discipline!"
+                summary = uiState.score?.summaryMessage ?: "Top financial discipline!",
+                onClick = onNavigatePrediction
             )
         }
 
@@ -68,7 +72,10 @@ fun DashboardScreen(
             MonthlyOverviewSection(
                 spent = uiState.totalExpenseMonth,
                 budget = uiState.totalBudgetMonth,
-                savings = uiState.savingsMonth
+                savings = uiState.savingsMonth,
+                currencySymbol = sym,
+                onSpentClick = onNavigateExpenses,
+                onSavingsClick = onNavigatePrediction
             )
         }
 
@@ -79,7 +86,7 @@ fun DashboardScreen(
                 text = "Quick Actions",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = WalletTextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -95,7 +102,7 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(24.dp))
             AiInsightsCard(
                 insightTitle = uiState.insights.firstOrNull()?.title ?: "Weekend Spending Alert",
-                insightDesc = uiState.insights.firstOrNull()?.description ?: "Save up to ₹3,200 monthly by managing dining orders.",
+                insightDesc = uiState.insights.firstOrNull()?.description ?: "Save up to $sym3,200 monthly by managing dining orders.",
                 onActionClick = onNavigatePrediction
             )
         }
@@ -114,7 +121,7 @@ fun DashboardScreen(
                     text = "Recent Transactions",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = WalletTextPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "View All",
@@ -127,9 +134,11 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        items(uiState.recentExpenses) { expense ->
+        items(uiState.recentExpenses, key = { it.id }) { expense ->
             DashboardExpenseItem(
                 expense = expense,
+                currencySymbol = sym,
+                onClick = { onNavigateExpenseDetail(expense.id) },
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
             )
         }
@@ -144,7 +153,7 @@ private fun HeaderGreetingRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 20.dp),
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -153,13 +162,13 @@ private fun HeaderGreetingRow(
                 text = "Welcome back, $userName",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
-                color = WalletTextSecondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = "Financial Overview",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = WalletTextPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
 
@@ -167,14 +176,14 @@ private fun HeaderGreetingRow(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(WalletSurface)
+                .background(MaterialTheme.colorScheme.surface)
                 .clickable { onNotificationClick() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Rounded.NotificationsNone,
                 contentDescription = "Notifications",
-                tint = WalletTextPrimary
+                tint = MaterialTheme.colorScheme.onSurface
             )
             Box(
                 modifier = Modifier
@@ -193,12 +202,14 @@ private fun WalletScoreCard(
     score: Int,
     maxScore: Int,
     rating: String,
-    summary: String
+    summary: String,
+    onClick: () -> Unit
 ) {
     GradientWalletCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 24.dp),
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -272,7 +283,10 @@ private fun WalletScoreCard(
 private fun MonthlyOverviewSection(
     spent: Double,
     budget: Double,
-    savings: Double
+    savings: Double,
+    currencySymbol: String,
+    onSpentClick: () -> Unit,
+    onSavingsClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -282,18 +296,20 @@ private fun MonthlyOverviewSection(
     ) {
         StatCard(
             title = "Monthly Spent",
-            value = "₹${spent.toInt()}",
-            subtitle = "Budget: ₹${budget.toInt()}",
+            value = "$currencySymbol${spent.toInt()}",
+            subtitle = "Budget: $currencySymbol${budget.toInt()}",
             modifier = Modifier.weight(1f),
-            accentColor = WalletAccentCoral
+            accentColor = WalletAccentCoral,
+            onClick = onSpentClick
         )
 
         StatCard(
             title = "Est. Savings",
-            value = "₹${savings.toInt()}",
-            subtitle = "+12% vs last mo",
+            value = "$currencySymbol${savings.toInt()}",
+            subtitle = "Target achieved",
             modifier = Modifier.weight(1f),
-            accentColor = WalletSuccess
+            accentColor = WalletSuccess,
+            onClick = onSavingsClick
         )
     }
 }
@@ -350,7 +366,7 @@ private fun ActionButtonTile(
     Row(
         modifier = Modifier
             .clip(TextFieldShape)
-            .background(WalletSurface)
+            .background(MaterialTheme.colorScheme.surface)
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -374,7 +390,7 @@ private fun ActionButtonTile(
             text = title,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            color = WalletTextPrimary
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -389,7 +405,7 @@ private fun AiInsightsCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp),
-        backgroundColor = WalletSurface,
+        onClick = onActionClick,
         elevation = 6.dp
     ) {
         Row(
@@ -420,13 +436,13 @@ private fun AiInsightsCard(
             text = insightTitle,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = WalletTextPrimary
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = insightDesc,
             fontSize = 13.sp,
-            color = WalletTextSecondary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -434,11 +450,14 @@ private fun AiInsightsCard(
 @Composable
 private fun DashboardExpenseItem(
     expense: Expense,
+    currencySymbol: String,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     WalletCard(
         modifier = modifier,
-        elevation = 2.dp
+        elevation = 2.dp,
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -468,21 +487,21 @@ private fun DashboardExpenseItem(
                         text = expense.title,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = WalletTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "${expense.merchant} • ${expense.date}",
                         fontSize = 12.sp,
-                        color = WalletTextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
             Text(
-                text = "-₹${expense.amount.toInt()}",
+                text = "-$currencySymbol${expense.amount.toInt()}",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = WalletTextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }

@@ -17,15 +17,31 @@ data class Insight(
 )
 
 data class UserProfile(
-    val id: String,
-    val name: String,
-    val email: String,
+    val id: String = "usr_101",
+    val name: String = "Alex Morgan",
+    val email: String = "alex.morgan@walletwise.io",
+    val phone: String = "+91 98765 43210",
+    val monthlyIncome: Double = 85000.0,
+    val occupation: String = "Product Designer",
     val isPremium: Boolean = true,
     val avatarUrl: String? = null,
     val currencySymbol: String = "₹",
+    val language: String = "English",
     val themeMode: String = "Light",
-    val biometricEnabled: Boolean = true
-)
+    val biometricEnabled: Boolean = true,
+    val notificationsEnabled: Boolean = true
+) {
+    val completionPercentage: Int
+        get() {
+            var score = 0
+            if (name.isNotBlank()) score += 20
+            if (email.isNotBlank()) score += 20
+            if (phone.isNotBlank()) score += 20
+            if (monthlyIncome > 0) score += 20
+            if (occupation.isNotBlank()) score += 20
+            return score
+        }
+}
 
 data class NotificationItem(
     val id: String,
@@ -34,5 +50,5 @@ data class NotificationItem(
     val timestamp: String,
     val groupTag: String = "Today", // "Today", "Yesterday", "Earlier"
     val isRead: Boolean = false,
-    val type: String // e.g. "ALERT", "AI", "SYSTEM"
+    val type: String // e.g. "ALERT", "AI", "SYSTEM", "BUDGET", "REMINDER", "REPORT"
 )

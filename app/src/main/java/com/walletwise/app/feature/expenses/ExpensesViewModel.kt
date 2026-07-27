@@ -67,6 +67,10 @@ class ExpensesViewModel(
         repository.deleteExpense(id)
     }
 
+    fun undoLastDelete() {
+        repository.undoLastDelete()
+    }
+
     fun duplicateExpense(id: String) {
         repository.duplicateExpense(id)
     }

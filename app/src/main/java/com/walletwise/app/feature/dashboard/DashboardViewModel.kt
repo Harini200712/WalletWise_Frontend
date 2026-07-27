@@ -9,9 +9,10 @@ import kotlinx.coroutines.flow.*
 data class DashboardUiState(
     val user: UserProfile? = null,
     val score: WalletScore? = null,
-    val totalExpenseMonth: Double = 31909.0,
-    val totalBudgetMonth: Double = 48000.0,
-    val savingsMonth: Double = 16091.0,
+    val totalExpenseMonth: Double = 0.0,
+    val totalBudgetMonth: Double = 0.0,
+    val savingsMonth: Double = 0.0,
+    val currencySymbol: String = "₹",
     val recentExpenses: List<Expense> = emptyList(),
     val insights: List<Insight> = emptyList(),
     val prediction: Prediction? = null,
@@ -30,17 +31,22 @@ class DashboardViewModel(
             repository.user,
             repository.score,
             repository.expenses,
+            repository.budgets,
             repository.insights,
             repository.prediction
-        ) { user, score, expenses, insights, prediction ->
+        ) { user, score, expenses, budgets, insights, prediction ->
             val totalExpense = expenses.sumOf { it.amount }
+            val totalBudget = budgets.sumOf { it.allocatedAmount }
+            val savings = (user.monthlyIncome - totalExpense).coerceAtLeast(0.0)
+
             DashboardUiState(
                 user = user,
                 score = score,
                 totalExpenseMonth = totalExpense,
-                totalBudgetMonth = 48000.0,
-                savingsMonth = (48000.0 - totalExpense).coerceAtLeast(0.0),
-                recentExpenses = expenses.take(4),
+                totalBudgetMonth = totalBudget,
+                savingsMonth = savings,
+                currencySymbol = user.currencySymbol,
+                recentExpenses = expenses.take(5),
                 insights = insights,
                 prediction = prediction,
                 isLoading = false

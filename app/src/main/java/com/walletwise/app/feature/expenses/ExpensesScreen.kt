@@ -18,21 +18,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.walletwise.app.core.designsystem.*
 import com.walletwise.app.core.designsystem.components.*
 import com.walletwise.app.core.model.Expense
 import com.walletwise.app.core.model.ExpenseSortOption
+import kotlinx.coroutines.launch
 
 @Composable
 fun ExpensesScreen(
-    viewModel: ExpensesViewModel = ExpensesViewModel(),
+    viewModel: ExpensesViewModel = viewModel(),
     onNavigateExpenseDetail: (String) -> Unit,
     onOpenAddExpense: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showSortMenu by remember { mutableStateOf(false) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onOpenAddExpense,
@@ -43,7 +49,7 @@ fun ExpensesScreen(
                 Icon(Icons.Rounded.Add, contentDescription = "Add Expense")
             }
         },
-        containerColor = WalletBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -62,12 +68,12 @@ fun ExpensesScreen(
                             text = "Expense History",
                             fontSize = 26.sp,
                             fontWeight = FontWeight.Bold,
-                            color = WalletTextPrimary
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "${uiState.filteredExpenses.size} transactions recorded",
                             fontSize = 13.sp,
-                            color = WalletTextSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -76,7 +82,7 @@ fun ExpensesScreen(
                             onClick = { showSortMenu = true },
                             modifier = Modifier
                                 .clip(CircleShape)
-                                .background(WalletSurface)
+                                .background(MaterialTheme.colorScheme.surface)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Sort,
@@ -88,7 +94,7 @@ fun ExpensesScreen(
                         DropdownMenu(
                             expanded = showSortMenu,
                             onDismissRequest = { showSortMenu = false },
-                            modifier = Modifier.background(WalletSurface)
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                         ) {
                             ExpenseSortOption.values().forEach { option ->
                                 DropdownMenuItem(
@@ -96,7 +102,7 @@ fun ExpensesScreen(
                                         Text(
                                             text = option.displayName,
                                             fontWeight = if (option == uiState.sortOption) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (option == uiState.sortOption) WalletPrimary else WalletTextPrimary
+                                            color = if (option == uiState.sortOption) WalletPrimary else MaterialTheme.colorScheme.onSurface
                                         )
                                     },
                                     onClick = {
@@ -147,7 +153,7 @@ fun ExpensesScreen(
                             text = "No matching expenses found",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = WalletTextPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -161,7 +167,19 @@ fun ExpensesScreen(
                         ExpenseListItem(
                             expense = expense,
                             onClick = { onNavigateExpenseDetail(expense.id) },
-                            onDelete = { viewModel.deleteExpense(expense.id) },
+                            onDelete = {
+                                viewModel.deleteExpense(expense.id)
+                                coroutineScope.launch {
+                                    val result = snackbarHostState.showSnackbar(
+                                        message = "Expense removed",
+                                        actionLabel = "Undo",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        viewModel.undoLastDelete()
+                                    }
+                                }
+                            },
                             onDuplicate = { viewModel.duplicateExpense(expense.id) }
                         )
                     }
@@ -219,12 +237,12 @@ private fun ExpenseListItem(
                             text = expense.title,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = WalletTextPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "${expense.merchant} • ${expense.category.displayName}",
                             fontSize = 12.sp,
-                            color = WalletTextSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (expense.notes.isNotBlank()) {
                             Text(
@@ -241,7 +259,7 @@ private fun ExpenseListItem(
                         text = "-₹${expense.amount.toInt()}",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = WalletTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Row {
@@ -258,7 +276,7 @@ private fun ExpenseListItem(
                             Icon(
                                 imageVector = Icons.Rounded.Delete,
                                 contentDescription = "Delete",
-                                tint = WalletError.copy(alpha = 0.8f),
+                                tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -270,10 +288,10 @@ private fun ExpenseListItem(
         DropdownMenu(
             expanded = showContextMenu,
             onDismissRequest = { showContextMenu = false },
-            modifier = Modifier.background(WalletSurface)
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
         ) {
             DropdownMenuItem(
-                text = { Text("View Details", color = WalletTextPrimary) },
+                text = { Text("View Details", color = MaterialTheme.colorScheme.onSurface) },
                 onClick = {
                     showContextMenu = false
                     onClick()
@@ -287,7 +305,7 @@ private fun ExpenseListItem(
                 }
             )
             DropdownMenuItem(
-                text = { Text("Delete Expense", color = WalletError) },
+                text = { Text("Delete Expense", color = MaterialTheme.colorScheme.error) },
                 onClick = {
                     showContextMenu = false
                     onDelete()

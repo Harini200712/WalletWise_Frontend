@@ -1,6 +1,7 @@
 package com.walletwise.app.feature.budget
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,16 +18,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.walletwise.app.core.designsystem.*
 import com.walletwise.app.core.designsystem.components.*
 import com.walletwise.app.core.model.Budget
 
 @Composable
 fun BudgetScreen(
-    viewModel: BudgetViewModel = BudgetViewModel(),
+    viewModel: BudgetViewModel = viewModel(),
     onOpenCreateBudget: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var selectedBudgetForEdit by remember { mutableStateOf<Budget?>(null) }
 
     Scaffold(
         floatingActionButton = {
@@ -39,7 +42,7 @@ fun BudgetScreen(
                 Icon(Icons.Rounded.Add, contentDescription = "Create Budget")
             }
         },
-        containerColor = WalletBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -53,12 +56,12 @@ fun BudgetScreen(
                         text = "Budget Planner",
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Bold,
-                        color = WalletTextPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "Set category caps & prevent monthly overspending",
                         fontSize = 13.sp,
-                        color = WalletTextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -129,7 +132,7 @@ fun BudgetScreen(
                                 Text(
                                     text = "${uiState.overspentCount} categories have exceeded allocated caps.",
                                     fontSize = 12.sp,
-                                    color = WalletTextPrimary
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -143,29 +146,46 @@ fun BudgetScreen(
                     text = "Category Budget Breakdown",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = WalletTextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            items(uiState.budgets) { budget ->
+            items(uiState.budgets, key = { it.id }) { budget ->
                 CategoryBudgetCard(
                     budget = budget,
+                    onClick = { selectedBudgetForEdit = budget },
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
                 )
             }
         }
+    }
+
+    if (selectedBudgetForEdit != null) {
+        CreateEditBudgetSheet(
+            onDismiss = { selectedBudgetForEdit = null },
+            initialBudget = selectedBudgetForEdit,
+            onSaveBudget = { updated ->
+                viewModel.updateBudget(updated)
+                selectedBudgetForEdit = null
+            },
+            onDeleteBudget = { id ->
+                viewModel.deleteBudget(id)
+                selectedBudgetForEdit = null
+            }
+        )
     }
 }
 
 @Composable
 private fun CategoryBudgetCard(
     budget: Budget,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     WalletCard(
-        modifier = modifier,
+        modifier = modifier.clickable { onClick() },
         elevation = 3.dp
     ) {
         CategoryProgressRow(

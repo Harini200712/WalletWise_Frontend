@@ -2,6 +2,7 @@ package com.walletwise.app.navigation
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
+    object Onboarding : Screen("onboarding")
     object Welcome : Screen("welcome")
     object Login : Screen("login")
     object Register : Screen("register")
@@ -17,4 +18,5 @@ sealed class Screen(val route: String) {
     object Prediction : Screen("prediction")
     object Notifications : Screen("notifications")
     object Profile : Screen("profile")
+    object Settings : Screen("settings")
 }

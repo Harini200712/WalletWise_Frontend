@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WalletWise - AI Powered Smart Expense & Budget Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    :root {
+      --primary: #5E7BFF;
+      --primary-dark: #4667F8;
+      --primary-light: #EAF0FF;
+      --accent-orange: #FFB56B;
+      --accent-coral: #FF7D8B;
+      --bg: #F7F9FF;
+      --surface: #FFFFFF;
+      --text-primary: #1F2A44;
+      --text-secondary: #7D8898;
+      --divider: #E8ECF6;
+      --success: #4CAF50;
+      --warning: #F6A623;
+      --error: #EF5350;
+      --card-radius: 24px;
+      --btn-radius: 28px;
+      --shadow-card: 0 8px 24px rgba(31, 42, 68, 0.06);
+    }
+
+    body.dark-theme {
+      --bg: #0F172A;
+      --surface: #1E293B;
+      --text-primary: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --divider: #334155;
+      --primary-light: rgba(94, 123, 255, 0.15);
+      --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: #0b0f19;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      color: #fff;
+    }
+
+    /* Device Mockup Shell */
+    .device-container {
+      width: 410px;
+      height: 840px;
+      background: #1e1e2e;
+      border-radius: 48px;
+      padding: 12px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,255,255,0.1);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .screen {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      border-radius: 38px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: background 0.3s ease;
+    }
+
+    .status-bar {
+      height: 44px;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      z-index: 10;
+    }
+
+    .dynamic-island {
+      width: 110px;
+      height: 24px;
+      background: #000;
+      border-radius: 20px;
+      position: absolute;
+      left: 50%;
+      top: 10px;
+      transform: translateX(-50%);
+    }
+
+    .app-content {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 90px;
+      scroll-behavior: smooth;
+    }
+
+    .app-content::-webkit-scrollbar { display: none; }
+
+    .view {
+      display: none;
+      padding: 0 20px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .view.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      padding: 12px 0 16px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-text h3 { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .header-text h1 { font-size: 22px; color: var(--text-primary); font-weight: 700; }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      background: var(--surface);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-card);
+      position: relative;
+      cursor: pointer;
+    }
+
+    .badge-dot {
+      width: 9px;
+      height: 9px;
+      background: var(--accent-coral);
+      border-radius: 50%;
+      position: absolute;
+      top: 10px;
+      right: 12px;
+    }
+
+    .score-card {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      border-radius: var(--card-radius);
+      padding: 22px;
+      color: #fff;
+      box-shadow: 0 14px 28px rgba(94, 123, 255, 0.35);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .score-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .score-tag { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,0.85); display: flex; align-items: center; gap: 6px; }
+    .rating-pill { background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+    .score-val { font-size: 38px; font-weight: 800; line-height: 1; margin-bottom: 14px; }
+    .score-val span { font-size: 16px; font-weight: 500; opacity: 0.7; }
+    .card-divider { height: 1px; background: rgba(255,255,255,0.2); margin: 12px 0; }
+    .score-desc { font-size: 12px; opacity: 0.9; }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+    .stat-card { background: var(--surface); border-radius: var(--card-radius); padding: 16px; box-shadow: var(--shadow-card); }
+    .stat-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+    .stat-val { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+    .stat-sub { font-size: 11px; font-weight: 600; }
+    .stat-sub.coral { color: var(--accent-coral); }
+    .stat-sub.green { color: var(--success); }
+
+    .section-title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .section-title span { font-size: 12px; color: var(--primary); cursor: pointer; }
+
+    .quick-actions { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 20px; }
+    .quick-actions::-webkit-scrollbar { display: none; }
+    .action-chip { background: var(--surface); padding: 10px 16px; border-radius: 18px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-card); white-space: nowrap; cursor: pointer; }
+    .chip-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; }
+
+    .filter-chips { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 4px; }
+    .filter-chips::-webkit-scrollbar { display: none; }
+    .f-chip { background: var(--surface); color: var(--text-secondary); padding: 8px 14px; border-radius: 14px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; box-shadow: var(--shadow-card); }
+    .f-chip.active { background: var(--primary); color: #fff; }
+
+    .ai-card { background: var(--surface); border-radius: var(--card-radius); padding: 18px; box-shadow: var(--shadow-card); border: 1.5px solid rgba(255, 181, 107, 0.4); margin-bottom: 20px; }
+    .ai-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--accent-orange); margin-bottom: 8px; }
+    .ai-card h4 { font-size: 15px; color: var(--text-primary); font-weight: 700; margin-bottom: 4px; }
+    .ai-card p { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+
+    .expense-item { background: var(--surface); border-radius: var(--card-radius); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; box-shadow: var(--shadow-card); transition: transform 0.2s; }
+    .expense-left { display: flex; align-items: center; gap: 12px; }
+    .cat-icon { width: 44px; height: 44px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: flex; justify-content: center; align-items: center; font-size: 18px; }
+    .expense-info h5 { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .expense-info p { font-size: 11px; color: var(--text-secondary); }
+    .expense-amt { font-size: 15px; font-weight: 700; color: var(--text-primary); text-align: right; }
+    .del-btn { font-size: 12px; color: var(--error); cursor: pointer; margin-left: 8px; }
+
+    .bottom-nav { position: absolute; bottom: 12px; left: 16px; right: 16px; height: 64px; background: var(--surface); border-radius: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); font-size: 10px; font-weight: 600; cursor: pointer; gap: 4px; transition: color 0.2s; }
+    .nav-item i { font-size: 18px; }
+    .nav-item.active { color: var(--primary); }
+
+    .fab-btn { width: 54px; height: 54px; background: var(--primary); color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; box-shadow: 0 8px 20px rgba(94, 123, 255, 0.4); margin-top: -30px; cursor: pointer; transition: transform 0.2s; }
+    .fab-btn:active { transform: scale(0.92); }
+
+    .modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; align-items: flex-end; }
+    .modal-overlay.active { display: flex; }
+    .bottom-sheet { width: 100%; background: var(--surface); border-radius: 28px 28px 0 0; padding: 20px 24px 34px 24px; animation: slideUp 0.3s ease; max-height: 85%; overflow-y: auto; }
+
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .sheet-pill { width: 44px; height: 4px; background: var(--divider); border-radius: 10px; margin: 0 auto 16px auto; }
+    .sheet-option { display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--bg); border-radius: 18px; margin-bottom: 10px; cursor: pointer; }
+    .sheet-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 16px; }
+
+    .input-group { margin-bottom: 14px; }
+    .input-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+    .input-group input, .input-group select { width: 100%; padding: 12px 16px; border-radius: 14px; border: 1px solid var(--divider); background: var(--bg); color: var(--text-primary); outline: none; font-size: 14px; }
+
+    .primary-btn { width: 100%; height: 50px; background: var(--primary); color: #fff; border: none; border-radius: 25px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+
+    .gauge-container { display: flex; justify-content: center; margin: 16px 0; }
+    .gauge-circle { width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(var(--primary) 0% 66%, var(--divider) 66% 100%); display: flex; justify-content: center; align-items: center; transition: background 0.5s ease; }
+    .gauge-inner { width: 118px; height: 118px; background: var(--surface); border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    .gauge-inner span { font-size: 10px; color: var(--text-secondary); }
+    .gauge-inner h2 { font-size: 18px; color: var(--text-primary); }
+
+    .bars-container { display: flex; justify-content: space-between; align-items: flex-end; height: 130px; padding-top: 16px; }
+    .bar-col { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+    .bar-fill { width: 16px; background: var(--primary); border-radius: 6px 6px 0 0; transition: height 0.6s ease; }
+    .bar-fill.high { background: var(--accent-coral); }
+    .bar-label { font-size: 10px; color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+
+  <div class="device-container">
+    <div class="screen" id="appScreen">
+      
+      <!-- Top Status Bar -->
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="dynamic-island"></div>
+        <div>
+          <i class="fa-solid fa-wifi"></i>
+          <i class="fa-solid fa-battery-full" style="margin-left: 4px;"></i>
+        </div>
+      </div>
+
+      <!-- Scrollable Main Content Area -->
+      <div class="app-content">
+
+        <!-- DASHBOARD VIEW -->
+        <div class="view active" id="view-home">
+          <div class="header">
+            <div class="header-text">
+              <h3>Welcome back, <span id="userNameHeader">Alex Vance</span></h3>
+              <h1>Financial Overview</h1>
+            </div>
+            <div class="icon-btn" onclick="switchTab('view-notif', 'nav-home')">
+              <i class="fa-regular fa-bell"></i>
+              <div class="badge-dot" id="notifBadge"></div>
+            </div>
+          </div>
+
+          <!-- Dynamic Wallet Score Card -->
+          <div class="score-card">
+            <div class="score-header">
+              <div class="score-tag"><i class="fa-solid fa-shield-halved"></i> WALLET SCORE</div>
+              <div class="rating-pill" id="scoreRating">Excellent</div>
+            </div>
+            <div class="score-val" id="scoreValue">785 <span>/ 900</span></div>
+            <div class="card-divider"></div>
+            <div class="score-desc" id="scoreSummary">Top financial discipline. Lower impulse shopping observed!</div>
+          </div>
+
+          <!-- Stats Grid -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Monthly Spent</div>
+              <div class="stat-val" id="dashTotalSpent">₹31,909</div>
+              <div class="stat-sub coral" id="dashTotalBudget">Budget: ₹48,000</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Est. Savings</div>
+              <div class="stat-val" id="dashSavings">₹16,091</div>
+              <div class="stat-sub green" id="dashSavingsRate">+62% Savings Rate</div>
+            </div>
+          </div>
+
+          <!-- Quick Actions Row -->
+          <div class="section-title">
+            Quick Shortcuts
+          </div>
+          <div class="quick-actions">
+            <div class="action-chip" onclick="switchTab('view-expenses', 'nav-expenses')">
+              <div class="chip-icon" style="background: var(--primary-light); color: var(--primary);"><i class="fa-solid fa-receipt"></i></div>
+              <span style="font-size:12px; font-weight:600; color:var(--text-primary);">Expenses</span>
+            </div>
+            <div class="action-chip" onclick="switchTab('view-budget', 'nav-budget')">
+              <div class="chip-icon" style="background: #E8F5E9; color: var(--success);"><i class="fa-solid fa-wallet"></i></div>
+              <span style="font-size:12px; font-weight:600; color:var(--text-primary);">Budgets</span>
+            </div>
+            <div class="action-chip" onclick="switchTab('view-ai', 'nav-ai')">
+              <div class="chip-icon" style="background: #FFF3E0; color: var(--accent-orange);"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+              <span style="font-size:12px; font-weight:600; color:var(--text-primary);">AI Forecast</span>
+            </div>
+          </div>
+
+          <!-- AI Insight Card -->
+          <div class="ai-card">
+            <div class="ai-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> AI INSIGHT OF THE DAY</div>
+            <h4 id="dashInsightTitle">Weekend Spend Surge Detected</h4>
+            <p id="dashInsightDesc">You spend 42% more on food orders during Friday & Saturday. Cooking dinner could save ₹3,200 monthly.</p>
+          </div>
+
+          <!-- Recent Transactions Header -->
+          <div class="section-title">
+            Recent Transactions
+            <span onclick="switchTab('view-expenses', 'nav-expenses')">View All</span>
+          </div>
+
+          <div id="dashboardRecentList"></div>
+        </div>
+
+        <!-- EXPENSES VIEW -->
+        <div class="view" id="view-expenses">
+          <div class="header">
+            <div class="header-text">
+              <h1>Expense History</h1>
+              <h3>Search & filter transactions</h3>
+            </div>
+          </div>
+
+          <!-- Search Bar -->
+          <div style="background: var(--surface); padding: 10px 16px; border-radius: 18px; display: flex; align-items: center; gap: 10px; margin-bottom: 12px; box-shadow: var(--shadow-card);">
+            <i class="fa-solid fa-magnifying-glass" style="color: var(--primary);"></i>
+            <input type="text" id="searchInput" placeholder="Search merchant, category, notes, amount..." oninput="handleSearchFilter()" style="border: none; background: transparent; outline: none; width: 100%; font-size: 13px; color: var(--text-primary);">
+          </div>
+
+          <!-- Category Filter Chips -->
+          <div class="filter-chips" id="categoryChips"></div>
+
+          <!-- Sort Selector -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span style="font-size:12px; color:var(--text-secondary);" id="expenseCountText">50 transactions</span>
+            <select id="sortSelect" onchange="handleSearchFilter()" style="padding:4px 8px; border-radius:10px; border:1px solid var(--divider); background:var(--surface); color:var(--text-primary); font-size:11px;">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="highest">Highest Amount</option>
+              <option value="lowest">Lowest Amount</option>
+              <option value="merchant">Merchant Name</option>
+            </select>
+          </div>
+
+          <div id="fullExpensesList"></div>
+        </div>
+
+        <!-- BUDGET VIEW -->
+        <div class="view" id="view-budget">
+          <div class="header">
+            <div class="header-text">
+              <h1>Budget Planner</h1>
+              <h3>Category caps & remaining balance</h3>
+            </div>
+          </div>
+
+          <div class="stat-card" style="text-align: center; padding: 22px;">
+            <div class="gauge-container">
+              <div class="gauge-circle" id="budgetGauge">
+                <div class="gauge-inner">
+                  <span>Spent</span>
+                  <h2 id="gaugeSpent">₹31,909</h2>
+                  <span id="gaugeCap">of ₹48,000</span>
+                </div>
+              </div>
+            </div>
+            <span style="background: var(--primary-light); color: var(--primary); padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;" id="gaugeRemaining">Remaining: ₹16,091</span>
+          </div>
+
+          <div class="section-title" style="margin-top: 20px;">Category Budgets</div>
+
+          <div id="budgetCategoryList"></div>
+        </div>
+
+        <!-- REPORTS VIEW -->
+        <div class="view" id="view-reports">
+          <div class="header">
+            <div class="header-text">
+              <h1>Financial Analytics</h1>
+              <h3>Visual charts & monthly trends</h3>
+            </div>
+          </div>
+
+          <div class="filter-chips" style="margin-bottom: 14px;">
+            <div class="f-chip active" onclick="setPeriod(this)">Monthly</div>
+            <div class="f-chip" onclick="setPeriod(this)">Weekly</div>
+            <div class="f-chip" onclick="setPeriod(this)">Daily</div>
+            <div class="f-chip" onclick="setPeriod(this)">Yearly</div>
+          </div>
+
+          <div class="stat-card" style="margin-bottom: 20px;">
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Category Spend Load</div>
+            <div style="font-size: 11px; color: var(--text-secondary);">Expense Distribution Ratio</div>
+            <div class="bars-container" id="reportsBarChart"></div>
+          </div>
+
+          <div class="stat-card">
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Financial Statement Summary</div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px; color:var(--text-secondary);">
+              <span>Monthly Income Credited</span>
+              <span style="font-weight:700; color:var(--success);">+₹85,000</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px; color:var(--text-secondary);">
+              <span>Total Outflow Expenses</span>
+              <span style="font-weight:700; color:var(--text-primary);" id="reportsOutflow">-₹31,909</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary);">
+              <span>Savings Reserve Rate</span>
+              <span style="font-weight:700; color:var(--primary);" id="reportsSavingsRate">62% (Healthy)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI PREDICTION VIEW -->
+        <div class="view" id="view-ai">
+          <div class="header">
+            <div class="header-text">
+              <h1>AI Spending Forecast</h1>
+              <h3>Gemini 30-Day Predictive Model</h3>
+            </div>
+          </div>
+
+          <div class="score-card">
+            <div class="score-header">
+              <div class="score-tag">FORECASTED SPEND</div>
+              <div class="rating-pill" id="forecastConfidence">94% Confidence</div>
+            </div>
+            <div class="score-val" id="forecastVal">₹38,450</div>
+            <div class="card-divider"></div>
+            <div class="score-desc" id="forecastSavings">Expected Monthly Savings: ₹14,200</div>
+          </div>
+
+          <div class="section-title">AI Recommendations</div>
+          
+          <div id="aiRecommendationsList"></div>
+        </div>
+
+        <!-- NOTIFICATIONS VIEW -->
+        <div class="view" id="view-notif">
+          <div class="header">
+            <div class="header-text">
+              <h1>Smart Notifications</h1>
+              <h3>Alerts, tips & updates</h3>
+            </div>
+          </div>
+
+          <div id="notificationsList"></div>
+        </div>
+
+        <!-- PROFILE VIEW -->
+        <div class="view" id="view-profile">
+          <div class="header">
+            <div class="header-text">
+              <h1>Account Settings</h1>
+              <h3>Preferences & Security</h3>
+            </div>
+          </div>
+
+          <div class="stat-card" style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+            <div style="width: 54px; height: 54px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 22px; font-weight: 700;" id="userAvatar">A</div>
+            <div>
+              <h4 style="font-size: 16px; font-weight: 700; color: var(--text-primary);"><span id="profileName">Alex Vance</span> <span style="background: rgba(255, 181, 107, 0.2); color: var(--accent-orange); font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 700;">PRO</span></h4>
+              <p style="font-size: 12px; color: var(--text-secondary);" id="profileEmail">alex.vance@walletwise.ai</p>
+            </div>
+          </div>
+
+          <div class="section-title">Preferences</div>
+
+          <div class="stat-card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer;" onclick="toggleDarkTheme()">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <i class="fa-solid fa-moon" style="color: var(--primary);"></i>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Dark Theme Mode</span>
+            </div>
+            <i class="fa-solid fa-toggle-on" id="themeToggleIcon" style="color: var(--primary); font-size: 22px;"></i>
+          </div>
+
+          <div class="stat-card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <i class="fa-solid fa-fingerprint" style="color: var(--primary);"></i>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Biometric Security</span>
+            </div>
+            <i class="fa-solid fa-toggle-on" style="color: var(--primary); font-size: 22px;"></i>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Curved Floating Bottom Bar -->
+      <div class="bottom-nav">
+        <div class="nav-item active" id="nav-home" onclick="switchTab('view-home', 'nav-home')">
+          <i class="fa-solid fa-house"></i>
+          <span>Home</span>
+        </div>
+        <div class="nav-item" id="nav-expenses" onclick="switchTab('view-expenses', 'nav-expenses')">
+          <i class="fa-solid fa-receipt"></i>
+          <span>Expenses</span>
+        </div>
+        
+        <div class="fab-btn" onclick="openBottomSheet()">
+          <i class="fa-solid fa-plus"></i>
+        </div>
+
+        <div class="nav-item" id="nav-reports" onclick="switchTab('view-reports', 'nav-reports')">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Reports</span>
+        </div>
+        <div class="nav-item" id="nav-profile" onclick="switchTab('view-profile', 'nav-profile')">
+          <i class="fa-solid fa-user"></i>
+          <span>Profile</span>
+        </div>
+      </div>
+
+      <!-- Quick Action / Add Expense Bottom Sheet Modal -->
+      <div class="modal-overlay" id="actionModal" onclick="closeBottomSheet(event)">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+          <div class="sheet-pill"></div>
+          
+          <div id="modalMenu">
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Quick Actions</h3>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">Manage your finances instantly</p>
+            
+            <div class="sheet-option" onclick="openAddExpenseForm()">
+              <div class="sheet-icon" style="background: var(--primary-light); color: var(--primary);"><i class="fa-solid fa-circle-plus"></i></div>
+              <div>
+                <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Add New Expense</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">Record manual transaction</div>
+              </div>
+            </div>
+
+            <div class="sheet-option" onclick="openAddExpenseForm('OCR Receipt')">
+              <div class="sheet-icon" style="background: #FFF3E0; color: var(--accent-orange);"><i class="fa-solid fa-qrcode"></i></div>
+              <div>
+                <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Scan Receipt (OCR)</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">Auto-extract totals using Google ML Kit</div>
+              </div>
+            </div>
+
+            <div class="sheet-option" onclick="closeBottomSheet(); switchTab('view-budget', 'nav-budget')">
+              <div class="sheet-icon" style="background: #E8F5E9; color: var(--success);"><i class="fa-solid fa-wallet"></i></div>
+              <div>
+                <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Set Monthly Budget</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">Define category spending limits</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add Expense Form -->
+          <div id="addForm" style="display: none;">
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Add Expense</h3>
+            
+            <div class="input-group">
+              <label>Title *</label>
+              <input type="text" id="expTitle" placeholder="e.g. Grocery Shopping">
+            </div>
+
+            <div class="input-group">
+              <label>Amount (₹) *</label>
+              <input type="number" id="expAmount" placeholder="0.00">
+            </div>
+
+            <div class="input-group">
+              <label>Merchant / Store</label>
+              <input type="text" id="expMerchant" placeholder="e.g. Walmart, Swiggy">
+            </div>
+
+            <div class="input-group">
+              <label>Category</label>
+              <select id="expCategory">
+                <option value="Food & Dining">Food & Dining</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Bills & Utilities">Bills & Utilities</option>
+                <option value="Transport">Transport</option>
+                <option value="Health & Wellness">Health & Wellness</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Travel & Vacation">Travel & Vacation</option>
+                <option value="Others">Others</option>
+              </select>
+            </div>
+
+            <button class="primary-btn" onclick="submitExpense()">Save Expense & Sync State</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // State Stores
+    let expenses = [
+      { id: '1', title: 'Organic Supermarket', merchant: 'Whole Foods', amount: 1450, category: 'Food & Dining', date: 'Today' },
+      { id: '2', title: 'Apple Store Subscription', merchant: 'Apple Inc', amount: 499, category: 'Bills & Utilities', date: 'Yesterday' },
+      { id: '3', title: 'Uber Ride Central', merchant: 'Uber Tech', amount: 320, category: 'Transport', date: '22 Jul' },
+      { id: '4', title: 'Nike Air Zoom Sneakers', merchant: 'Nike Store', amount: 4890, category: 'Shopping', date: '20 Jul' },
+      { id: '5', title: 'Pharmacy & Vitamins', merchant: 'Apollo Med', amount: 850, category: 'Health & Wellness', date: '18 Jul' },
+      { id: '6', title: 'IMAX Movie Night', merchant: 'PVR Cinemas', amount: 1200, category: 'Entertainment', date: '15 Jul' },
+      { id: '7', title: 'Flight to Goa', merchant: 'IndiGo Air', amount: 6800, category: 'Travel & Vacation', date: '14 Jul' },
+      { id: '8', title: 'Swiggy Gourmet Order', merchant: 'Truffles Bistro', amount: 890, category: 'Food & Dining', date: '13 Jul' }
+    ];
+
+    let budgets = [
+      { category: 'Food & Dining', cap: 15000 },
+      { category: 'Shopping', cap: 10000 },
+      { category: 'Bills & Utilities', cap: 12000 },
+      { category: 'Transport', cap: 6000 },
+      { category: 'Health & Wellness', cap: 5000 }
+    ];
+
+    let categories = ['All', 'Food & Dining', 'Shopping', 'Bills & Utilities', 'Transport', 'Health & Wellness', 'Entertainment', 'Travel & Vacation', 'Others'];
+    let selectedCategory = 'All';
+
+    // Init App
+    window.onload = function() {
+      renderCategoryChips();
+      renderApp();
+    };
+
+    function renderApp() {
+      const totalSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+      const totalBudget = 48000;
+      const savings = Math.max(0, 85000 - totalSpent);
+      const savingsRate = Math.round((savings / 85000) * 100);
+
+      // Score Calculation
+      let score = Math.min(900, Math.max(300, Math.round(700 + ((savings / 85000) * 150))));
+      document.getElementById('scoreValue').innerHTML = score + ' <span>/ 900</span>';
+      
+      let rating = score >= 800 ? 'Excellent' : (score >= 720 ? 'Good' : 'Fair');
+      document.getElementById('scoreRating').innerText = rating;
+
+      // Update Dashboard Stats
+      document.getElementById('dashTotalSpent').innerText = '₹' + totalSpent.toLocaleString();
+      document.getElementById('dashSavings').innerText = '₹' + savings.toLocaleString();
+      document.getElementById('dashSavingsRate').innerText = '+' + savingsRate + '% Savings Rate';
+
+      // Update Gauge
+      const pct = Math.min(100, Math.round((totalSpent / totalBudget) * 100));
+      document.getElementById('gaugeSpent').innerText = '₹' + totalSpent.toLocaleString();
+      document.getElementById('gaugeRemaining').innerText = 'Remaining: ₹' + Math.max(0, totalBudget - totalSpent).toLocaleString();
+      document.getElementById('budgetGauge').style.background = `conic-gradient(var(--primary) 0% ${pct}%, var(--divider) ${pct}% 100%)`;
+
+      // Update Reports
+      document.getElementById('reportsOutflow').innerText = '-₹' + totalSpent.toLocaleString();
+      document.getElementById('reportsSavingsRate').innerText = savingsRate + '% (Healthy)';
+
+      // Update Forecast
+      const forecasted = Math.round(totalSpent * 1.08);
+      document.getElementById('forecastVal').innerText = '₹' + forecasted.toLocaleString();
+      document.getElementById('forecastSavings').innerText = 'Expected Monthly Savings: ₹' + Math.max(0, 85000 - forecasted).toLocaleString();
+
+      renderRecentExpenses();
+      renderFullExpenses();
+      renderBudgetCategoryList();
+      renderReportsBarChart();
+      renderAiRecommendations();
+      renderNotifications();
+    }
+
+    function renderCategoryChips() {
+      const chipContainer = document.getElementById('categoryChips');
+      chipContainer.innerHTML = categories.map(cat => `
+        <div class="f-chip ${cat === selectedCategory ? 'active' : ''}" onclick="selectFilterCategory('${cat}')">${cat}</div>
+      `).join('');
+    }
+
+    function selectFilterCategory(cat) {
+      selectedCategory = cat;
+      renderCategoryChips();
+      handleSearchFilter();
+    }
+
+    function renderRecentExpenses() {
+      const container = document.getElementById('dashboardRecentList');
+      container.innerHTML = expenses.slice(0, 3).map(exp => `
+        <div class="expense-item">
+          <div class="expense-left">
+            <div class="cat-icon"><i class="fa-solid fa-receipt"></i></div>
+            <div class="expense-info">
+              <h5>${exp.title}</h5>
+              <p>${exp.merchant} • ${exp.date}</p>
+            </div>
+          </div>
+          <div class="expense-amt">-₹${exp.amount.toLocaleString()}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderFullExpenses() {
+      handleSearchFilter();
+    }
+
+    function handleSearchFilter() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const sort = document.getElementById('sortSelect').value;
+
+      let filtered = expenses.filter(exp => {
+        const matchesQ = exp.title.toLowerCase().includes(q) || exp.merchant.toLowerCase().includes(q) || exp.category.toLowerCase().includes(q);
+        const matchesC = selectedCategory === 'All' || exp.category === selectedCategory;
+        return matchesQ && matchesC;
+      });
+
+      if (sort === 'newest') filtered.reverse();
+      else if (sort === 'highest') filtered.sort((a,b) => b.amount - a.amount);
+      else if (sort === 'lowest') filtered.sort((a,b) => a.amount - b.amount);
+
+      document.getElementById('expenseCountText').innerText = filtered.length + ' transactions';
+
+      const container = document.getElementById('fullExpensesList');
+      if(filtered.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-secondary); font-size:13px;">No transactions found</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(exp => `
+        <div class="expense-item">
+          <div class="expense-left">
+            <div class="cat-icon"><i class="fa-solid fa-receipt"></i></div>
+            <div class="expense-info">
+              <h5>${exp.title}</h5>
+              <p>${exp.merchant} • ${exp.category}</p>
+            </div>
+          </div>
+          <div>
+            <div class="expense-amt">-₹${exp.amount.toLocaleString()}</div>
+            <span class="del-btn" onclick="deleteExpense('${exp.id}')"><i class="fa-solid fa-trash-can"></i></span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function deleteExpense(id) {
+      expenses = expenses.filter(e => e.id !== id);
+      renderApp();
+    }
+
+    function renderBudgetCategoryList() {
+      const container = document.getElementById('budgetCategoryList');
+      container.innerHTML = budgets.map(bgt => {
+        const spent = expenses.filter(e => e.category === bgt.category).reduce((a,c) => a + c.amount, 0);
+        const pct = Math.min(100, Math.round((spent / bgt.cap) * 100));
+        return `
+          <div class="stat-card" style="margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+              <span>${bgt.category}</span>
+              <span>₹${spent.toLocaleString()} / ₹${bgt.cap.toLocaleString()}</span>
+            </div>
+            <div style="height: 8px; background: var(--divider); border-radius: 4px; overflow: hidden;">
+              <div style="width: ${pct}%; height: 100%; background: ${pct > 85 ? 'var(--accent-coral)' : 'var(--primary)'};"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderReportsBarChart() {
+      const container = document.getElementById('reportsBarChart');
+      const cats = ['Food', 'Shop', 'Bills', 'Trans', 'Health'];
+      container.innerHTML = cats.map(c => `
+        <div class="bar-col">
+          <div class="bar-fill ${Math.random() > 0.5 ? 'high' : ''}" style="height: ${Math.floor(Math.random() * 60 + 35)}%;"></div>
+          <div class="bar-label">${c}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderAiRecommendations() {
+      const container = document.getElementById('aiRecommendationsList');
+      container.innerHTML = `
+        <div class="stat-card" style="margin-bottom: 10px; display: flex; gap: 12px; align-items: center;">
+          <i class="fa-solid fa-lightbulb" style="color: var(--accent-orange); font-size: 20px;"></i>
+          <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">Shift ₹4,000 to High-Yield Liquid Fund before July 28th to earn interest.</span>
+        </div>
+        <div class="stat-card" style="margin-bottom: 10px; display: flex; gap: 12px; align-items: center;">
+          <i class="fa-solid fa-lightbulb" style="color: var(--accent-orange); font-size: 20px;"></i>
+          <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">Limit dining out to ₹1,500 over the next week to meet your August target.</span>
+        </div>
+      `;
+    }
+
+    function renderNotifications() {
+      const container = document.getElementById('notificationsList');
+      container.innerHTML = `
+        <div class="stat-card" style="margin-bottom: 10px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--accent-coral);">Shopping Budget Cap Alert</div>
+          <div style="font-size: 12px; color: var(--text-secondary);">Shopping category is at 89% capacity.</div>
+        </div>
+        <div class="stat-card" style="margin-bottom: 10px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--primary);">AI Spending Forecast Updated</div>
+          <div style="font-size: 12px; color: var(--text-secondary);">New 30-day predicted spending breakdown generated.</div>
+        </div>
+      `;
+    }
+
+    function switchTab(viewId, navId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      
+      document.getElementById(viewId).classList.add('active');
+      if(navId && document.getElementById(navId)) {
+        document.getElementById(navId).classList.add('active');
+      }
+    }
+
+    function openBottomSheet() {
+      document.getElementById('modalMenu').style.display = 'block';
+      document.getElementById('addForm').style.display = 'none';
+      document.getElementById('actionModal').classList.add('active');
+    }
+
+    function openAddExpenseForm(titlePref) {
+      document.getElementById('modalMenu').style.display = 'none';
+      document.getElementById('addForm').style.display = 'block';
+      if(titlePref) document.getElementById('expTitle').value = titlePref;
+    }
+
+    function closeBottomSheet() {
+      document.getElementById('actionModal').classList.remove('active');
+    }
+
+    function submitExpense() {
+      const title = document.getElementById('expTitle').value || 'New Expense';
+      const amount = parseFloat(document.getElementById('expAmount').value) || 500;
+      const merchant = document.getElementById('expMerchant').value || 'Store';
+      const cat = document.getElementById('expCategory').value;
+
+      expenses.unshift({
+        id: Date.now().toString(),
+        title: title,
+        merchant: merchant,
+        amount: amount,
+        category: cat,
+        date: 'Just now'
+      });
+
+      closeBottomSheet();
+      renderApp();
+      switchTab('view-expenses', 'nav-expenses');
+    }
+
+    function toggleDarkTheme() {
+      const isDark = document.body.classList.toggle('dark-theme');
+      const icon = document.getElementById('themeToggleIcon');
+      icon.style.color = isDark ? 'var(--accent-orange)' : 'var(--primary)';
+    }
+
+    function setPeriod(el) {
+      document.querySelectorAll('.f-chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      renderReportsBarChart();
+    }
+  </script>
+</body>
+</html>
